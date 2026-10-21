@@ -730,7 +730,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     let pending = !s.active && s.from != nil
     if let button = statusItem.button {
       let (symbol, fallback): (String, String) =
-        s.active ? ("moon.stars.fill", "🌙") : pending ? ("clock", "⏰") : ("moon.zzz", "💤")
+        s.active ? ("moon.stars.fill", "🌙") : pending ? ("clock", "⏰") : ("sun.max.fill", "☀️")
       let image = NSImage(systemSymbolName: symbol, accessibilityDescription: statusText(s))
       button.image = image
       button.title = image == nil ? fallback : ""
