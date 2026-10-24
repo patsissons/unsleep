@@ -1,10 +1,17 @@
 #!/bin/zsh
 # One-time setup: allow UnSleep to run its three exact pmset commands without
-# a password. Run as:  sudo ./install-sudoers.sh
+# a password. Run as:
+#   sudo ./install-sudoers.sh
+# or without a clone:
+#   curl -fsSL https://raw.githubusercontent.com/patsissons/unsleep/main/install-sudoers.sh | sudo zsh
 set -euo pipefail
 
 if [[ $EUID -ne 0 ]]; then
-  echo "Run with sudo: sudo $0" >&2
+  if [[ -f $0 ]]; then
+    echo "Run with sudo: sudo $0" >&2
+  else
+    echo "Run with sudo: curl -fsSL https://raw.githubusercontent.com/patsissons/unsleep/main/install-sudoers.sh | sudo zsh" >&2
+  fi
   exit 1
 fi
 

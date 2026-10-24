@@ -226,6 +226,7 @@ say "Done — look for the ☀️ icon in the menu bar (near the clock)."
 if [ "${MODE}" = "local" ]; then
     say "Password-free mode is optional; enable it from the app menu or with sudo ${SRC}/install-sudoers.sh."
 else
-    say "Password-free mode is optional; enable it from the app menu (Set Up Password-Free Mode…)."
+    say "Password-free mode is optional; enable it from the app menu or with:"
+    say "  curl -fsSL https://raw.githubusercontent.com/patsissons/unsleep/${INSTALL_REF}/install-sudoers.sh | sudo zsh"
 fi
 say "Smoke test: unsleep status"

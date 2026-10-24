@@ -109,11 +109,14 @@ default. On first launch, enable password-free mode when prompted, or choose
 > These commands only change sleep settings. They do not grant broader admin
 > access or access to your files, so password-free mode is low risk.
 
-You can also enable it from a clone of this repository:
+You can also enable it from the terminal, no clone needed:
 
 ```bash
-sudo ./install-sudoers.sh
+curl -fsSL https://raw.githubusercontent.com/patsissons/unsleep/main/install-sudoers.sh | sudo zsh
 ```
+
+This runs [`install-sudoers.sh`](install-sudoers.sh) as root, so you may want
+to read it first. From a clone, run `sudo ./install-sudoers.sh` instead.
 
 This adds a validated sudoers rule for UnSleep's three exact `pmset` commands.
 Remove it anytime:
