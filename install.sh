@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
 #
-# UnSleep source installer: clones (or updates) the repo, builds the app and
-# CLI locally, and launches the menu bar app.
+# UnSleep installer: checks dependencies (offering to install any that are
+# missing), downloads the source for a ref into a temporary directory, builds
+# the app and CLI locally, and launches the menu bar app. No git or lasting
+# checkout is needed.
 #
 # Install or update:
 #   curl -fsSL https://raw.githubusercontent.com/patsissons/unsleep/main/install.sh | bash
@@ -13,18 +15,21 @@
 #   ... | UNSLEEP_INSTALL_REF=<ref> bash
 set -euo pipefail
 
-REPO_URL="https://github.com/patsissons/unsleep.git"
 INSTALL_REF="${UNSLEEP_INSTALL_REF:-main}"
-CHECKOUT="${UNSLEEP_HOME:-$HOME/src/github.com/patsissons/unsleep}"
+TARBALL_URL="https://github.com/patsissons/unsleep/archive/${INSTALL_REF}.tar.gz"
+MIN_MACOS_MAJOR=12
+CLT_WAIT_SECS=3600
 
 say()  { printf '\033[1;36m==>\033[0m %s\n' "$*"; }
 warn() { printf '\033[1;33m!!\033[0m  %s\n' "$*" >&2; }
 die()  { printf '\033[1;31mxx\033[0m  %s\n' "$*" >&2; exit 1; }
+ok()   { printf '    \033[1;32m✓\033[0m %s\n' "$*"; }
+miss() { printf '    \033[1;31m✗\033[0m %s\n' "$*"; }
 
 # Prompt through the terminal because stdin contains this script when invoked
 # through the one-liner. Non-interactive runs decline prompts.
 INTERACTIVE=0
-[ -e /dev/tty ] && INTERACTIVE=1
+if (exec < /dev/tty) 2>/dev/null; then INTERACTIVE=1; fi
 confirm() {
     [ "${INTERACTIVE}" = "1" ] || return 1
     local reply=""
@@ -34,49 +39,136 @@ confirm() {
 }
 
 # A file-backed invocation beside the sources builds the current checkout.
-# Piped input has no script file and therefore clones (or updates) the repo.
+# Piped input has no script file and therefore downloads the source tarball.
 SCRIPT_DIR=""
 if [ -n "${BASH_SOURCE[0]:-}" ] && [ -f "${BASH_SOURCE[0]:-}" ]; then
     SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 fi
-MODE="clone"
+MODE="remote"
 if [ -n "${SCRIPT_DIR}" ] && [ -f "${SCRIPT_DIR}/main.swift" ] && [ -f "${SCRIPT_DIR}/build.sh" ]; then
     MODE="local"
 fi
 
-say "Checking prerequisites..."
+# --- Dependencies -----------------------------------------------------------
+# macOS, curl and tar ship with the OS; only the Xcode Command Line Tools
+# (swiftc) can be missing or broken on a stock Mac, so only they get offered.
+
+# Sets CLT to ok, missing, devdir (developer dir is unusable) or license (Xcode
+# license not accepted), and CLT_ERROR to xcrun's output. xcrun only runs once a
+# developer dir exists so a missing toolchain can't pop up the macOS install
+# dialog unasked.
+CLT=""
+CLT_ERROR=""
+clt_state() {
+    local dir
+    CLT_ERROR=""
+    if ! dir="$(xcode-select -p 2>/dev/null)"; then CLT="missing"; return; fi
+    if [ ! -d "${dir}" ]; then CLT="devdir"; return; fi
+    if CLT_ERROR="$(xcrun swiftc --version 2>&1)"; then CLT="ok"; return; fi
+    case "${CLT_ERROR}" in *[Ll]icense*) CLT="license" ;; *) CLT="devdir" ;; esac
+}
+
+wait_for_clt() {
+    local start="${SECONDS}" elapsed
+    while clt_state; [ "${CLT}" != "ok" ]; do
+        elapsed=$((SECONDS - start))
+        if [ "${elapsed}" -ge "${CLT_WAIT_SECS}" ]; then
+            printf '\n' > /dev/tty
+            die "Timed out waiting for the Command Line Tools; re-run this installer once they finish."
+        fi
+        printf '\r    waiting for the Command Line Tools... %dm%02ds (Ctrl-C to abort)' \
+            $((elapsed / 60)) $((elapsed % 60)) > /dev/tty
+        sleep 5
+    done
+    printf '\n' > /dev/tty
+}
+
+install_clt() {
+    warn "The Xcode Command Line Tools provide the Swift compiler UnSleep builds with."
+    warn "They're a ~1-2 GB download; installing usually takes 5-20 minutes (longer on"
+    warn "slow connections). macOS shows its own installer dialog."
+    confirm "Install the Command Line Tools now?" \
+        || die "Install them with 'xcode-select --install', then re-run this installer."
+    xcode-select --install >/dev/null 2>&1 || true
+    say "Follow the macOS installer dialog; this script continues once it finishes."
+    wait_for_clt
+}
+
+fix_devdir() {
+    warn "The active developer directory ($(xcode-select -p 2>/dev/null)) can't run swiftc."
+    warn "Resetting it to the default takes a few seconds and asks for your password."
+    confirm "Run 'sudo xcode-select --reset' now?" \
+        || die "Run 'sudo xcode-select --reset' (or reinstall the Command Line Tools), then re-run this installer."
+    sudo xcode-select --reset
+}
+
+accept_license() {
+    warn "Xcode is the active developer directory, but its license hasn't been accepted."
+    warn "Accepting it takes a few seconds and asks for your password."
+    confirm "Run 'sudo xcodebuild -license accept' now?" \
+        || die "Run 'sudo xcodebuild -license accept', then re-run this installer."
+    sudo xcodebuild -license accept
+}
+
+say "Checking dependencies..."
 [ "$(uname -s)" = "Darwin" ] || die "UnSleep is macOS only (found $(uname -s))."
-if ! xcrun --find swiftc >/dev/null 2>&1; then
-    warn "The Swift toolchain (Xcode Command Line Tools) is missing."
-    if confirm "Run 'xcode-select --install' now?"; then
-        xcode-select --install || true
-        die "Re-run this installer once the Command Line Tools finish installing."
+
+FATAL=0
+MACOS_VERSION="$(sw_vers -productVersion)"
+if [ "${MACOS_VERSION%%.*}" -ge "${MIN_MACOS_MAJOR}" ]; then
+    ok "macOS ${MACOS_VERSION} (needs ${MIN_MACOS_MAJOR}+)"
+else
+    miss "macOS ${MACOS_VERSION} (needs ${MIN_MACOS_MAJOR}+)"
+    FATAL=1
+fi
+if [ "${MODE}" = "remote" ]; then
+    if command -v curl >/dev/null 2>&1 && command -v tar >/dev/null 2>&1; then
+        ok "curl, tar"
+    else
+        miss "curl, tar (normally part of macOS)"
+        FATAL=1
     fi
-    die "Install the Command Line Tools (xcode-select --install), then re-run."
 fi
-if [ "${MODE}" = "clone" ]; then
-    command -v git >/dev/null 2>&1 || die "git is required."
-fi
-say "Prerequisites OK."
+clt_state
+case "${CLT}" in
+    ok)      ok "Xcode Command Line Tools (swiftc)" ;;
+    missing) miss "Xcode Command Line Tools (not installed)" ;;
+    devdir)  miss "Xcode Command Line Tools (developer directory can't run swiftc)" ;;
+    license) miss "Xcode Command Line Tools (Xcode license not accepted)" ;;
+esac
+[ "${FATAL}" = "0" ] || die "UnSleep needs macOS ${MIN_MACOS_MAJOR} or later with curl and tar."
+
+# Each fix can surface the next problem (e.g. resetting a stale Xcode path
+# reveals that no tools are installed), so re-check after every step.
+ATTEMPTS=0
+while [ "${CLT}" != "ok" ]; do
+    ATTEMPTS=$((ATTEMPTS + 1))
+    [ "${ATTEMPTS}" -le 3 ] || die "swiftc still doesn't work: ${CLT_ERROR:-unknown error}"
+    case "${CLT}" in
+        missing) install_clt ;;
+        devdir)  fix_devdir ;;
+        license) accept_license ;;
+    esac
+    clt_state
+done
+say "Dependencies OK."
+
+# --- Source -----------------------------------------------------------------
 
 if [ "${MODE}" = "local" ]; then
-    CHECKOUT="${SCRIPT_DIR}"
-    say "Using local checkout: ${CHECKOUT}"
-elif [ -d "${CHECKOUT}/.git" ]; then
-    say "Updating ${CHECKOUT} (${INSTALL_REF})..."
-    [ -z "$(git -C "${CHECKOUT}" status --porcelain)" ] \
-        || die "Checkout has local changes; commit/stash them or remove ${CHECKOUT}."
-    git -C "${CHECKOUT}" fetch -q origin "${INSTALL_REF}"
-    git -C "${CHECKOUT}" checkout -q --detach FETCH_HEAD
+    SRC="${SCRIPT_DIR}"
+    say "Using local checkout: ${SRC}"
 else
-    say "Cloning ${REPO_URL} to ${CHECKOUT}..."
-    mkdir -p "$(dirname "${CHECKOUT}")"
-    git clone --quiet "${REPO_URL}" "${CHECKOUT}"
-    if [ "${INSTALL_REF}" != "main" ]; then
-        git -C "${CHECKOUT}" fetch -q origin "${INSTALL_REF}"
-        git -C "${CHECKOUT}" checkout -q --detach FETCH_HEAD
-    fi
+    SRC="$(mktemp -d -t unsleep)"
+    trap 'rm -rf "${SRC}"' EXIT
+    say "Downloading UnSleep (${INSTALL_REF})..."
+    curl -fsSL "${TARBALL_URL}" | tar -xz -C "${SRC}" --strip-components=1 \
+        || die "Couldn't download ${TARBALL_URL}; check the ref and your connection."
+    [ -f "${SRC}/main.swift" ] && [ -f "${SRC}/build.sh" ] \
+        || die "The download for '${INSTALL_REF}' doesn't contain the UnSleep sources."
 fi
+
+# --- Install ----------------------------------------------------------------
 
 # Don't silently kill an active keep-awake session mid-update.
 RELAUNCH=1
@@ -102,7 +194,7 @@ if pgrep -f "UnSleep.app/Contents/MacOS" >/dev/null 2>&1; then
 fi
 
 say "Building..."
-"${CHECKOUT}/build.sh"
+"${SRC}/build.sh"
 
 if [ "${RELAUNCH}" = "1" ]; then
     say "Launching UnSleep..."
@@ -112,11 +204,29 @@ fi
 case ":${PATH}:" in
     *":${HOME}/.local/bin:"*) ;;
     *)
-        warn "~/.local/bin isn't on your PATH; the unsleep CLI won't resolve. Add:"
-        warn '  export PATH="$HOME/.local/bin:$PATH"'
+        warn "~/.local/bin isn't on your PATH, so the unsleep command won't resolve yet."
+        case "${SHELL:-}" in
+            */bash) PROFILE="${HOME}/.bash_profile" ;;
+            *)      PROFILE="${HOME}/.zprofile" ;;
+        esac
+        PATH_LINE='export PATH="$HOME/.local/bin:$PATH"'
+        if grep -qsF "${PATH_LINE}" "${PROFILE}"; then
+            warn "${PROFILE} already adds it; open a new terminal to pick it up."
+        elif confirm "Add it to ${PROFILE} (takes effect in new terminals)?"; then
+            printf '\n# Added by the UnSleep installer\n%s\n' "${PATH_LINE}" >> "${PROFILE}"
+            say "Added to ${PROFILE}; open a new terminal or run: source ${PROFILE}"
+        else
+            warn "Add this to your shell profile:"
+            warn "  ${PATH_LINE}"
+        fi
         ;;
 esac
 
-say "Done — look for the 🌙 icon in the menu bar (near the clock)."
-say "Password-free mode is optional; enable it from the app menu or with sudo ${CHECKOUT}/install-sudoers.sh."
+say "Done — look for the ☀️ icon in the menu bar (near the clock)."
+if [ "${MODE}" = "local" ]; then
+    say "Password-free mode is optional; enable it from the app menu or with sudo ${SRC}/install-sudoers.sh."
+else
+    say "Password-free mode is optional; enable it from the app menu or with:"
+    say "  curl -fsSL https://raw.githubusercontent.com/patsissons/unsleep/${INSTALL_REF}/install-sudoers.sh | sudo bash"
+fi
 say "Smoke test: unsleep status"
