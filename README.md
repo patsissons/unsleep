@@ -112,7 +112,7 @@ default. On first launch, enable password-free mode when prompted, or choose
 You can also enable it from the terminal, no clone needed:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/patsissons/unsleep/main/install-sudoers.sh | sudo zsh
+curl -fsSL https://raw.githubusercontent.com/patsissons/unsleep/main/install-sudoers.sh | sudo bash
 ```
 
 This runs [`install-sudoers.sh`](install-sudoers.sh) as root, so you may want
