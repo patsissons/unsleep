@@ -16,17 +16,31 @@ lid closed.
 > possible, keep the lid open or use Apple’s supported clamshell setup while
 > connected to power.
 
-## Menu bar app
-
-Install or update UnSleep from source:
+## Install
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/patsissons/unsleep/main/install.sh | bash
 ```
 
-This requires the Xcode Command Line Tools and git. It
-installs `~/Applications/UnSleep.app` and `~/.local/bin/unsleep`, then launches
-the app.
+This builds UnSleep from source and installs `~/Applications/UnSleep.app` and
+`~/.local/bin/unsleep`, then launches the app. Nothing is cloned: the source
+downloads to a temporary directory that's deleted after the build. Run the
+same command again to update.
+
+The installer checks its dependencies first. The only one that might be
+missing is the Xcode Command Line Tools, which provide the Swift compiler. If
+they're missing, it offers to install them (a ~1–2 GB download that usually
+takes 5–20 minutes) and continues when they finish.
+
+To pin or roll back to a tag, branch, or commit:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/patsissons/unsleep/main/install.sh | UNSLEEP_INSTALL_REF=<ref> bash
+```
+
+From a clone, run `./install.sh` to build and install that working tree.
+
+## Menu bar app
 
 Use the menu bar icon to:
 
@@ -95,7 +109,7 @@ default. On first launch, enable password-free mode when prompted, or choose
 > These commands only change sleep settings. They do not grant broader admin
 > access or access to your files, so password-free mode is low risk.
 
-You can also enable it from the repository:
+You can also enable it from a clone of this repository:
 
 ```bash
 sudo ./install-sudoers.sh
