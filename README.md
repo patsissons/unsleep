@@ -52,7 +52,7 @@ Use the menu bar icon to:
 <p align="center">
   <img src="docs/screenshots/menu-off.png" width="176" alt="UnSleep menu while off">
   &nbsp;
-  <img src="docs/screenshots/menu-on.png" width="265" alt="UnSleep menu while keeping the Mac awake, showing the end time and minutes left">
+  <img src="docs/screenshots/menu-on.png" width="268" alt="UnSleep menu while keeping the Mac awake, showing the end time and minutes left">
 </p>
 
 <p align="center">
