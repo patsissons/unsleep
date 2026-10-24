@@ -33,6 +33,23 @@ Use the menu bar icon to:
 - toggle **Keep Awake**
 - choose a duration from **Keep Awake For**
 - **Schedule** a start and end time
+- see version info and a link to this repo in **About UnSleep**
+
+<p align="center">
+  <img src="docs/screenshots/menu-off.png" width="176" alt="UnSleep menu while off">
+  &nbsp;
+  <img src="docs/screenshots/menu-on.png" width="265" alt="UnSleep menu while keeping the Mac awake, showing the end time and minutes left">
+</p>
+
+<p align="center">
+  <img src="docs/screenshots/keep-awake-for.png" width="271" alt="Keep Awake For submenu with durations from 15 minutes to 8 hours">
+</p>
+
+<p align="center">
+  <img src="docs/screenshots/schedule.png" width="352" alt="Schedule Keep Awake dialog with From and To time pickers">
+  &nbsp;
+  <img src="docs/screenshots/about.png" width="260" alt="About UnSleep dialog with version and GitHub link">
+</p>
 
 Turning UnSleep off or quitting restores the sleep settings it changed. To
 start it at login, add `UnSleep.app` in **System Settings → General → Login

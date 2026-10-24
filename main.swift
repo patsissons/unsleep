@@ -545,6 +545,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     setupItem.isHidden = true
     menu.addItem(setupItem)
 
+    let about = NSMenuItem(title: "About UnSleep", action: #selector(aboutAction), keyEquivalent: "")
+    about.target = self
+    menu.addItem(about)
+
     let quit = NSMenuItem(title: "Quit UnSleep", action: #selector(quitApp), keyEquivalent: "q")
     quit.target = self
     menu.addItem(quit)
@@ -621,6 +625,36 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
   @objc private func cancelScheduleAction() {
     DispatchQueue.global().async { [self] in _ = controller.off() }
+  }
+
+  @objc private func aboutAction() {
+    let repoURL = URL(string: "https://github.com/patsissons/unsleep")!
+    let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "?"
+
+    let link = NSTextField(labelWithAttributedString: NSAttributedString(
+      string: "github.com/patsissons/unsleep",
+      attributes: [.link: repoURL, .font: NSFont.systemFont(ofSize: NSFont.smallSystemFontSize)]))
+    link.isSelectable = true
+    link.allowsEditingTextAttributes = true
+    link.sizeToFit()
+
+    let alert = NSAlert()
+    alert.messageText = "UnSleep"
+    alert.informativeText = """
+      Version \(version)
+
+      Keeps your Mac awake, even with the lid closed, from the menu bar or \
+      the unsleep CLI.
+
+      MIT License
+      """
+    alert.accessoryView = link
+    alert.addButton(withTitle: "OK")
+    alert.addButton(withTitle: "View on GitHub")
+    NSApp.activate(ignoringOtherApps: true)
+    if alert.runModal() == .alertSecondButtonReturn {
+      NSWorkspace.shared.open(repoURL)
+    }
   }
 
   @objc private func quitApp() { NSApp.terminate(nil) }
