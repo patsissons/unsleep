@@ -7,6 +7,8 @@
 A tiny macOS menu bar app and CLI that keeps your Mac awake—even with the
 lid closed.
 
+**Website:** [unsleep.lgtm.page](https://unsleep.lgtm.page)
+
 > [!WARNING]
 > UnSleep bypasses macOS’s intended lid-close sleep behavior. This is mostly
 > okay, but for legal reasons :tm:, keeping your Mac awake with the lid closed can
@@ -17,6 +19,35 @@ lid closed.
 > connected to power.
 
 ## Install
+
+UnSleep needs macOS 12 or later and is built from source on your Mac, with
+either Homebrew or the install script.
+
+### Homebrew
+
+```bash
+brew install patsissons/tap/unsleep
+open "$(brew --prefix)/opt/unsleep/UnSleep.app"
+```
+
+This installs the latest release from the
+[`patsissons/tap`](https://github.com/patsissons/homebrew-tap) tap: the app
+stays in Homebrew's prefix, and `unsleep` goes on your `PATH`. Update with
+`brew upgrade unsleep`.
+
+To start UnSleep at login:
+
+```bash
+brew services start unsleep
+```
+
+To find it in Spotlight and Launchpad, link it into `~/Applications`:
+
+```bash
+ln -sf "$(brew --prefix)/opt/unsleep/UnSleep.app" ~/Applications/
+```
+
+### Install script
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/patsissons/unsleep/main/install.sh | bash
@@ -50,24 +81,24 @@ Use the menu bar icon to:
 - see version info and a link to this repo in **About UnSleep**
 
 <p align="center">
-  <img src="docs/screenshots/menu-off.png" width="176" alt="UnSleep menu while off">
+  <img src="site/screenshots/menu-off.png" width="176" alt="UnSleep menu while off">
   &nbsp;
-  <img src="docs/screenshots/menu-on.png" width="268" alt="UnSleep menu while keeping the Mac awake, showing the end time and minutes left">
+  <img src="site/screenshots/menu-on.png" width="268" alt="UnSleep menu while keeping the Mac awake, showing the end time and minutes left">
 </p>
 
 <p align="center">
-  <img src="docs/screenshots/keep-awake-for.png" width="271" alt="Keep Awake For submenu with durations from 15 minutes to 8 hours">
+  <img src="site/screenshots/keep-awake-for.png" width="271" alt="Keep Awake For submenu with durations from 15 minutes to 8 hours">
 </p>
 
 <p align="center">
-  <img src="docs/screenshots/schedule.png" width="352" alt="Schedule Keep Awake dialog with From and To time pickers">
+  <img src="site/screenshots/schedule.png" width="352" alt="Schedule Keep Awake dialog with From and To time pickers">
   &nbsp;
-  <img src="docs/screenshots/about.png" width="260" alt="About UnSleep dialog with version and GitHub link">
+  <img src="site/screenshots/about.png" width="260" alt="About UnSleep dialog with version and GitHub link">
 </p>
 
 Turning UnSleep off or quitting restores the sleep settings it changed. To
-start it at login, add `UnSleep.app` in **System Settings → General → Login
-Items**.
+start it at login, use `brew services start unsleep` with Homebrew, or add
+`UnSleep.app` in **System Settings → General → Login Items**.
 
 ## CLI
 
@@ -109,7 +140,14 @@ default. On first launch, enable password-free mode when prompted, or choose
 > These commands only change sleep settings. They do not grant broader admin
 > access or access to your files, so password-free mode is low risk.
 
-You can also enable it from the terminal, no clone needed:
+You can also enable it from the terminal. With Homebrew, the script is
+installed alongside UnSleep:
+
+```bash
+sudo "$(brew --prefix)/share/unsleep/install-sudoers.sh"
+```
+
+Otherwise, no clone needed:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/patsissons/unsleep/main/install-sudoers.sh | sudo bash
@@ -127,12 +165,32 @@ sudo rm -f /etc/sudoers.d/unsleep
 
 ## Uninstall
 
+Turn UnSleep off first so your sleep settings are restored. With Homebrew:
+
+```bash
+unsleep off
+brew services stop unsleep
+osascript -e 'quit app "UnSleep"'
+brew uninstall unsleep
+rm -f ~/Applications/UnSleep.app   # only if you linked it
+sudo rm -f /etc/sudoers.d/unsleep
+```
+
+With the install script:
+
 ```bash
 unsleep off
 osascript -e 'quit app "UnSleep"'
 rm -rf ~/Applications/UnSleep.app ~/.local/bin/unsleep
 sudo rm -f /etc/sudoers.d/unsleep
 ```
+
+## Website
+
+[unsleep.lgtm.page](https://unsleep.lgtm.page) is served from [`site/`](site).
+`site/og.png` is its Open Graph image, rendered from the site's logo and the
+menu screenshots by `scripts/og-image.sh` (headless Chrome); re-run it after
+changing either.
 
 ## License
 
