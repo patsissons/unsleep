@@ -1,10 +1,12 @@
 #!/bin/zsh
-# Build UnSleep.app into ~/Applications and the unsleep CLI into ~/.local/bin.
+# Build UnSleep.app into $APPDIR (default ~/Applications) and the unsleep CLI
+# into $BINDIR (default ~/.local/bin). The Homebrew formula sets both to its
+# prefix; the CLI finds the app beside its own bin/ dir before ~/Applications.
 set -euo pipefail
 
 src_dir="$(cd "$(dirname "$0")" && pwd)"
-app="$HOME/Applications/UnSleep.app"
-cli="$HOME/.local/bin/unsleep"
+app="${APPDIR:-$HOME/Applications}/UnSleep.app"
+cli="${BINDIR:-$HOME/.local/bin}/unsleep"
 
 # -Onone is deliberate: Swift 6.2.3 miscompiles script-mode top-level code
 # under -O (spurious index/unwrap traps at runtime). These are tiny IO-bound

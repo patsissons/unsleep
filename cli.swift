@@ -12,7 +12,20 @@
 import Foundation
 
 let socketPath = NSString(string: "~/Library/Application Support/UnSleep/ctl.sock").expandingTildeInPath
-let appPath = NSString(string: "~/Applications/UnSleep.app").expandingTildeInPath
+
+/// Where UnSleep.app lives. A Homebrew install keeps it in the keg beside the
+/// CLI's bin/ dir (`<prefix>/bin/unsleep` → `<prefix>/UnSleep.app`); the
+/// install script puts it in ~/Applications.
+func appPath() -> String {
+  let fallback = NSString(string: "~/Applications/UnSleep.app").expandingTildeInPath
+  var size = UInt32(PATH_MAX)
+  var buf = [CChar](repeating: 0, count: Int(size))
+  guard _NSGetExecutablePath(&buf, &size) == 0 else { return fallback }
+  let exe = URL(fileURLWithPath: String(cString: buf)).resolvingSymlinksInPath()
+  let sibling = exe.deletingLastPathComponent().deletingLastPathComponent()
+    .appendingPathComponent("UnSleep.app").path
+  return FileManager.default.fileExists(atPath: sibling) ? sibling : fallback
+}
 
 let usage = """
 usage:
@@ -122,12 +135,13 @@ func connectToApp() -> Int32? {
 }
 
 func launchAppAndConnect() -> Int32? {
-  guard FileManager.default.fileExists(atPath: appPath) else { return nil }
+  let app = appPath()
+  guard FileManager.default.fileExists(atPath: app) else { return nil }
   let p = Process()
   p.executableURL = URL(fileURLWithPath: "/usr/bin/open")
   // Open by PATH, not bundle id: freshly built apps aren't registered with
   // LaunchServices yet, so `open -b` fails until the first path-based open.
-  p.arguments = ["-g", appPath]
+  p.arguments = ["-g", app]
   do { try p.run() } catch { return nil }
   p.waitUntilExit()
   guard p.terminationStatus == 0 else { return nil }
@@ -191,7 +205,7 @@ func finish(_ obj: [String: Any]?, json: Bool, notRunningIsOff: Bool) -> Never {
         : "off (app not running)")
       exit(0)
     }
-    die("could not reach UnSleep.app (is it built? run ./install.sh from the repo)")
+    die("could not reach UnSleep.app at \(appPath()) (is it installed?)")
   }
   if json {
     let data = try! JSONSerialization.data(withJSONObject: obj)
