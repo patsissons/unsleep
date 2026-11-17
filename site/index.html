@@ -321,24 +321,23 @@
   <section id="install">
     <div class="wrap">
       <h2>Install</h2>
-      <p class="intro">Install with Homebrew, or with the install script. Either way, UnSleep is built from source on your Mac.</p>
+      <p class="intro">Install the app with Homebrew, or build it from source with the install script.</p>
       <ul class="req">
         <li>macOS 12 Monterey or later</li>
-        <li>Apple silicon or Intel</li>
-        <li>Xcode Command Line Tools</li>
+        <li>Homebrew: Apple silicon</li>
+        <li>Install script: any Mac, with the Xcode Command Line Tools</li>
       </ul>
       <div class="steps">
         <div>
           <h3>With Homebrew</h3>
-          <p>Installs the latest release from the <a href="https://github.com/patsissons/homebrew-tap"><code>patsissons/tap</code></a> tap, then opens the menu bar app.</p>
-          <div class="code"><pre><code><span class="p">$ </span>brew install patsissons/tap/unsleep
-<span class="p">$ </span>open "$(brew --prefix)/opt/unsleep/UnSleep.app"</code></pre></div>
-          <p class="after">To start it at login, run <code>brew services start unsleep</code>. To find it in Spotlight and Launchpad, link it into <code>~/Applications</code>:</p>
-          <div class="code" style="margin-top:12px"><pre><code><span class="p">$ </span>ln -sf "$(brew --prefix)/opt/unsleep/UnSleep.app" ~/Applications/</code></pre></div>
+          <p>Installs <code>/Applications/UnSleep.app</code> from the latest <a href="https://github.com/patsissons/unsleep/releases">release</a> with the <a href="https://github.com/patsissons/homebrew-tap"><code>patsissons/tap</code></a> cask, and puts <code>unsleep</code> on your <code>PATH</code>.</p>
+          <div class="code"><pre><code><span class="p">$ </span>brew install --cask patsissons/tap/unsleep</code></pre></div>
+          <p class="after">The app isn’t notarized by Apple yet, so the first time you open it macOS says it can’t verify it. Open <strong>System Settings → Privacy &amp; Security</strong> and click <strong>Open Anyway</strong> next to the UnSleep message. Or clear the download quarantine from the terminal:</p>
+          <div class="code" style="margin-top:12px"><pre><code><span class="p">$ </span>xattr -dr com.apple.quarantine /Applications/UnSleep.app</code></pre></div>
         </div>
         <div>
           <h3>With the install script</h3>
-          <p>Checks for the Command Line Tools and offers to install them if they’re missing, builds UnSleep in a temporary directory, installs <code>~/Applications/UnSleep.app</code> and <code>~/.local/bin/unsleep</code>, and launches the app. Run it again to update.</p>
+          <p>Builds UnSleep from source on Apple silicon or Intel. It checks for the Command Line Tools and offers to install them if they’re missing, installs <code>~/Applications/UnSleep.app</code> with the CLI linked at <code>~/.local/bin/unsleep</code>, and launches the app. Run it again to update.</p>
           <div class="code"><pre><code><span class="p">$ </span>curl -fsSL https://raw.githubusercontent.com/patsissons/unsleep/main/install.sh | bash</code></pre></div>
         </div>
         <div>
@@ -415,7 +414,7 @@
       <details>
         <summary>How do I start UnSleep at login?</summary>
         <div>
-          <p>With Homebrew, run <code>brew services start unsleep</code>. Otherwise, add <code>UnSleep.app</code> in <strong>System Settings → General → Login Items</strong>.</p>
+          <p>Add <code>UnSleep.app</code> in <strong>System Settings → General → Login Items</strong>.</p>
         </div>
       </details>
       <details>
@@ -427,7 +426,7 @@
       <details>
         <summary>Does it work on Intel Macs and desktops?</summary>
         <div>
-          <p>Yes. UnSleep runs on any Mac with macOS 12 or later. Lid-close sleep only matters on laptops, but keeping a desktop awake works the same way.</p>
+          <p>Yes. UnSleep runs on any Mac with macOS 12 or later; the Homebrew cask is Apple silicon only, so use the install script on Intel. Lid-close sleep only matters on laptops, but keeping a desktop awake works the same way.</p>
         </div>
       </details>
       <details>
@@ -435,9 +434,7 @@
         <div>
           <p>Turn it off first so your sleep settings are restored. With Homebrew:</p>
           <div class="code"><pre><code><span class="p">$ </span>unsleep off
-<span class="p">$ </span>brew services stop unsleep
-<span class="p">$ </span>osascript -e 'quit app "UnSleep"'
-<span class="p">$ </span>brew uninstall unsleep
+<span class="p">$ </span>brew uninstall --cask unsleep
 <span class="p">$ </span>sudo rm -f /etc/sudoers.d/unsleep</code></pre></div>
           <p>With the install script:</p>
           <div class="code"><pre><code><span class="p">$ </span>unsleep off
