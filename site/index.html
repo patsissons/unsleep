@@ -332,8 +332,7 @@
           <h3>With Homebrew</h3>
           <p>Installs <code>/Applications/UnSleep.app</code> from the latest <a href="https://github.com/patsissons/unsleep/releases">release</a> with the <a href="https://github.com/patsissons/homebrew-tap"><code>patsissons/tap</code></a> cask, and puts <code>unsleep</code> on your <code>PATH</code>.</p>
           <div class="code"><pre><code><span class="p">$ </span>brew install --cask patsissons/tap/unsleep</code></pre></div>
-          <p class="after">The app isn’t notarized by Apple yet, so the first time you open it macOS says it can’t verify it. Open <strong>System Settings → Privacy &amp; Security</strong> and click <strong>Open Anyway</strong> next to the UnSleep message. Or clear the download quarantine from the terminal:</p>
-          <div class="code" style="margin-top:12px"><pre><code><span class="p">$ </span>xattr -dr com.apple.quarantine /Applications/UnSleep.app</code></pre></div>
+          <p class="after">The app isn’t notarized by Apple yet, so the cask clears macOS’s download quarantine on the app after installing it. Without that, Gatekeeper refuses to open the app or run the CLI.</p>
         </div>
         <div>
           <h3>With the install script</h3>
