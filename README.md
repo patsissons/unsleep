@@ -32,14 +32,9 @@ This installs `/Applications/UnSleep.app` from the latest
 [release](https://github.com/patsissons/unsleep/releases) and puts `unsleep`
 on your `PATH`. Update with `brew upgrade --cask unsleep`.
 
-The app isn't notarized by Apple yet, so the first time you open it macOS says
-it can't verify it. Open **System Settings → Privacy & Security**, scroll to
-**Security**, and click **Open Anyway** next to the UnSleep message. If you'd
-rather do it from the terminal, this clears the download quarantine instead:
-
-```bash
-xattr -dr com.apple.quarantine /Applications/UnSleep.app
-```
+The app isn't notarized by Apple yet, so the cask clears macOS's download
+quarantine on the app after installing it. Without that, Gatekeeper refuses to
+open the app or run the CLI.
 
 ### Install script (any Mac)
 
