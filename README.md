@@ -20,41 +20,36 @@ lid closed.
 
 ## Install
 
-UnSleep needs macOS 12 or later and is built from source on your Mac, with
-either Homebrew or the install script.
+UnSleep needs macOS 12 or later.
 
-### Homebrew
-
-```bash
-brew install patsissons/tap/unsleep
-open "$(brew --prefix)/opt/unsleep/UnSleep.app"
-```
-
-This installs the latest release from the
-[`patsissons/tap`](https://github.com/patsissons/homebrew-tap) tap: the app
-stays in Homebrew's prefix, and `unsleep` goes on your `PATH`. Update with
-`brew upgrade unsleep`.
-
-To start UnSleep at login:
+### Homebrew (Apple silicon)
 
 ```bash
-brew services start unsleep
+brew install --cask patsissons/tap/unsleep
 ```
 
-To find it in Spotlight and Launchpad, link it into `~/Applications`:
+This installs `/Applications/UnSleep.app` from the latest
+[release](https://github.com/patsissons/unsleep/releases) and puts `unsleep`
+on your `PATH`. Update with `brew upgrade --cask unsleep`.
+
+The app isn't notarized by Apple yet, so the first time you open it macOS says
+it can't verify it. Open **System Settings → Privacy & Security**, scroll to
+**Security**, and click **Open Anyway** next to the UnSleep message. If you'd
+rather do it from the terminal, this clears the download quarantine instead:
 
 ```bash
-ln -sf "$(brew --prefix)/opt/unsleep/UnSleep.app" ~/Applications/
+xattr -dr com.apple.quarantine /Applications/UnSleep.app
 ```
 
-### Install script
+### Install script (any Mac)
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/patsissons/unsleep/main/install.sh | bash
 ```
 
-This builds UnSleep from source and installs `~/Applications/UnSleep.app` and
-`~/.local/bin/unsleep`, then launches the app. Nothing is cloned: the source
+This builds UnSleep from source, on Apple silicon or Intel, and installs
+`~/Applications/UnSleep.app` with `~/.local/bin/unsleep` linked to the CLI
+inside it, then launches the app. Nothing is cloned: the source
 downloads to a temporary directory that's deleted after the build. Run the
 same command again to update.
 
@@ -97,8 +92,8 @@ Use the menu bar icon to:
 </p>
 
 Turning UnSleep off or quitting restores the sleep settings it changed. To
-start it at login, use `brew services start unsleep` with Homebrew, or add
-`UnSleep.app` in **System Settings → General → Login Items**.
+start it at login, add `UnSleep.app` in **System Settings → General → Login
+Items**.
 
 ## CLI
 
@@ -140,14 +135,7 @@ default. On first launch, enable password-free mode when prompted, or choose
 > These commands only change sleep settings. They do not grant broader admin
 > access or access to your files, so password-free mode is low risk.
 
-You can also enable it from the terminal. With Homebrew, the script is
-installed alongside UnSleep:
-
-```bash
-sudo "$(brew --prefix)/share/unsleep/install-sudoers.sh"
-```
-
-Otherwise, no clone needed:
+You can also enable it from the terminal, no clone needed:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/patsissons/unsleep/main/install-sudoers.sh | sudo bash
@@ -169,12 +157,12 @@ Turn UnSleep off first so your sleep settings are restored. With Homebrew:
 
 ```bash
 unsleep off
-brew services stop unsleep
-osascript -e 'quit app "UnSleep"'
-brew uninstall unsleep
-rm -f ~/Applications/UnSleep.app   # only if you linked it
+brew uninstall --cask unsleep        # quits the app first
 sudo rm -f /etc/sudoers.d/unsleep
 ```
+
+`brew uninstall --zap --cask unsleep` also removes the app's preferences and
+the password-free sudoers rule.
 
 With the install script:
 
@@ -191,6 +179,17 @@ sudo rm -f /etc/sudoers.d/unsleep
 `site/og.png` is its Open Graph image, rendered from the site's logo and the
 menu screenshots by `scripts/og-image.sh` (headless Chrome); re-run it after
 changing either.
+
+## Releasing
+
+1. Bump `CFBundleShortVersionString` and `CFBundleVersion` in `Info.plist`.
+2. Merge to `main`, then tag `v<version>` and publish a GitHub release for it.
+   The [release workflow](.github/workflows/release.yml) builds the Apple
+   silicon app, ad-hoc signs it, and attaches `UnSleep-<version>.zip` (and its
+   `.sha256`) to the release.
+3. Update `version` and `sha256` in
+   [`Casks/unsleep.rb`](https://github.com/patsissons/homebrew-tap/blob/main/Casks/unsleep.rb)
+   in the tap.
 
 ## License
 

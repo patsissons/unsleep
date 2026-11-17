@@ -13,18 +13,21 @@ import Foundation
 
 let socketPath = NSString(string: "~/Library/Application Support/UnSleep/ctl.sock").expandingTildeInPath
 
-/// Where UnSleep.app lives. A Homebrew install keeps it in the keg beside the
-/// CLI's bin/ dir (`<prefix>/bin/unsleep` → `<prefix>/UnSleep.app`); the
-/// install script puts it in ~/Applications.
+/// Where UnSleep.app lives. The CLI ships inside the bundle at
+/// Contents/Helpers/unsleep and is symlinked onto the PATH (by the Homebrew
+/// cask or build.sh), so resolve the real executable and walk up to its
+/// bundle. A CLI outside a bundle (e.g. a hand-copied binary) falls back to
+/// ~/Applications.
 func appPath() -> String {
   let fallback = NSString(string: "~/Applications/UnSleep.app").expandingTildeInPath
   var size = UInt32(PATH_MAX)
   var buf = [CChar](repeating: 0, count: Int(size))
   guard _NSGetExecutablePath(&buf, &size) == 0 else { return fallback }
-  let exe = URL(fileURLWithPath: String(cString: buf)).resolvingSymlinksInPath()
-  let sibling = exe.deletingLastPathComponent().deletingLastPathComponent()
-    .appendingPathComponent("UnSleep.app").path
-  return FileManager.default.fileExists(atPath: sibling) ? sibling : fallback
+  let bundle = URL(fileURLWithPath: String(cString: buf)).resolvingSymlinksInPath()
+    .deletingLastPathComponent()  // Helpers
+    .deletingLastPathComponent()  // Contents
+    .deletingLastPathComponent()  // UnSleep.app
+  return bundle.pathExtension == "app" ? bundle.path : fallback
 }
 
 let usage = """
